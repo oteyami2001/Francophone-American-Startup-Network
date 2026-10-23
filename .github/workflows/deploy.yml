@@ -26,7 +26,9 @@ jobs:
       - run: npm test
       - run: npm run build
         env:
-          FORM_ENDPOINT: ${{ vars.FORM_ENDPOINT }}  
+          FORM_ENDPOINT: ${{ vars.FORM_ENDPOINT }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
 
@@ -57,8 +59,10 @@ jobs:
         env:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
           NEXT_PUBLIC_SITE_URL: ${{ steps.pages.outputs.base_url }}
-          # Optional: set a repository variable to send form submissions to a real endpoint.
           NEXT_PUBLIC_FORM_ENDPOINT: ${{ vars.FORM_ENDPOINT }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          
       - run: touch out/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
