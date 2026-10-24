@@ -6,6 +6,7 @@ import type { Dictionary } from "@/i18n";
 import type { Locale } from "@/i18n/config";
 import { href } from "@/lib/routes";
 import { submitForm, type SubmitResult } from "@/lib/forms";
+import { supabase } from "@/lib/supabase";
 import { rules, validate, type ErrorKey } from "@/lib/validation";
 import { CheckboxGroup, Consent, ErrorSummary, FormResult, SelectField, TextField, errorText, focusFirstError } from "./fields";
 import { Honeypot } from "./Honeypot";
@@ -41,27 +42,76 @@ export function JoinForm({ locale, t }: { locale: Locale; t: Pick<Dictionary, "f
   const set = (k: keyof typeof v) => (val: string) => setV((s) => ({ ...s, [k]: val }));
 
   async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const errs = validate(v, {
-      firstName: [rules.required(), rules.maxLength(80)],
-      lastName: [rules.required(), rules.maxLength(80)],
-      email: [rules.required(), rules.email()],
-      password: [rules.required(), rules.minLength(10)],
-      state: [rules.required()],
-      role: [rules.required()],
-      linkedin: [rules.url()],
+  e.preventDefault();
+
+  const errs = validate(v, {
+    firstName: [rules.required(), rules.maxLength(80)],
+    lastName: [rules.required(), rules.maxLength(80)],
+    email: [rules.required(), rules.email()],
+    password: [rules.required(), rules.minLength(10)],
+    state: [rules.required()],
+    role: [rules.required()],
+    linkedin: [rules.url()],
+  });
+
+  if (!consent) errs.consent = "consent";
+
+  setErrors(errs);
+
+  if (Object.keys(errs).length) {
+    return focusFirstError(errs);
+  }
+
+  if (trap) {
+    return setResult("sent");
+  }
+
+  setBusy(true);
+  setResult(null);
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: v.email,
+      password: v.password,
+      options: {
+        data: {
+          first_name: v.firstName,
+          last_name: v.lastName,
+          city: v.city,
+          state: v.state,
+          role: v.role,
+          company: v.company,
+          linkedin: v.linkedin,
+          language: v.language,
+          needs,
+        },
+      },
     });
-    if (!consent) errs.consent = "consent";
-    setErrors(errs);
-    if (Object.keys(errs).length) return focusFirstError(errs);
-    if (trap) return setResult("sent");
-    setBusy(true);
-    // Never send the password to a generic form endpoint — real sign-up goes through the auth provider.
+
+    if (error) {
+      alert(error.message);
+      setResult("error");
+      return;
+    }
+
     const { password: _pw, ...profile } = v;
     void _pw;
-    setResult(await submitForm("join", { ...profile, needs, locale }));
+
+    await submitForm("join", {
+      ...profile,
+      needs,
+      locale,
+      supabaseUserId: data.user?.id ?? "",
+    });
+
+    setResult("sent");
+  } catch (error) {
+    console.error("Sign-up error:", error);
+    setResult("error");
+  } finally {
     setBusy(false);
   }
+}
 
   if (result && result !== "error") return <FormResult result={result} t={f} />;
 
