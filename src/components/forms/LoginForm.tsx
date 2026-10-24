@@ -46,7 +46,12 @@ export function LoginForm({ locale, t }: { locale: Locale; t: Pick<Dictionary, "
 
   console.log("Signed in user:", data.user);
 
-  window.location.href = href(locale, "home");
+  const basePath =
+    process.env.NEXT_PUBLIC_BASE_PATH ||
+    "/Francophone-American-Startup-Network";
+
+  window.location.href = `${basePath}/${locale}/`;
+
 }
 
   return (
