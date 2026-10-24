@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 import type { Dictionary } from "@/i18n";
 import type { Locale } from "@/i18n/config";
 import { href } from "@/lib/routes";
@@ -19,13 +20,34 @@ export function LoginForm({ locale, t }: { locale: Locale; t: Pick<Dictionary, "
   const [errors, setErrors] = useState<Record<string, ErrorKey>>({});
   const [submitted, setSubmitted] = useState(false);
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const errs = validate(v, { email: [rules.required(), rules.email()], password: [rules.required()] });
-    setErrors(errs);
-    if (Object.keys(errs).length) return focusFirstError(errs);
-    setSubmitted(true);
+  async function onSubmit(e: React.FormEvent) {
+  e.preventDefault();
+
+  const errs = validate(v, {
+    email: [rules.required(), rules.email()],
+    password: [rules.required()],
+  });
+
+  setErrors(errs);
+
+  if (Object.keys(errs).length) {
+    return focusFirstError(errs);
   }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: v.email,
+    password: v.password,
+  });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  console.log("Signed in user:", data.user);
+
+  window.location.href = href(locale, "home");
+}
 
   return (
     <form noValidate onSubmit={onSubmit} className="space-y-5">
